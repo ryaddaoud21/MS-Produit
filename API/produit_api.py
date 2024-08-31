@@ -2,6 +2,10 @@ from flask import Flask, jsonify, request, make_response
 from functools import wraps
 import secrets
 from flask_sqlalchemy import SQLAlchemy
+import threading
+import pika
+import json
+from API.pika_config import  get_rabbitmq_connection
 
 # Initialisation de l'application Flask
 app = Flask(__name__)
@@ -12,6 +16,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialisation de SQLAlchemy
 db = SQLAlchemy(app)
+
 
 # Modèle de la base de données pour les produits
 class Product(db.Model):
@@ -27,12 +32,15 @@ class Product(db.Model):
     def __repr__(self):
         return f'<Product {self.nom}>'
 
+
 # Simulated token storage (In a real application, use a database or other secure storage)
 valid_tokens = {}
+
 
 # Function to generate a secure token
 def generate_token():
     return secrets.token_urlsafe(32)
+
 
 # Decorator to require a valid token
 def token_required(f):
@@ -52,7 +60,9 @@ def token_required(f):
         request.role = valid_tokens[user]['role']
 
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # Decorator to require admin role
 def admin_required(f):
@@ -61,7 +71,9 @@ def admin_required(f):
         if request.role != "admin":
             return make_response(jsonify({"error": "Forbidden"}), 403)
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 # Endpoint to login and generate a token
 @app.route('/login', methods=['POST'])
@@ -85,6 +97,7 @@ def login():
 
     return jsonify({"msg": "Invalid credentials"}), 401
 
+
 # Endpoint to logout and invalidate the token
 @app.route('/logout', methods=['POST'])
 @token_required
@@ -95,6 +108,7 @@ def logout():
         del valid_tokens[user]
         return jsonify({"msg": "Successfully logged out"}), 200
     return make_response(jsonify({"error": "Unauthorized"}), 401)
+
 
 # Endpoint to get all products
 @app.route('/products', methods=['GET'])
@@ -110,6 +124,7 @@ def get_products():
         "categorie": p.categorie
     } for p in products])
 
+
 # Endpoint to get a specific product by ID
 @app.route('/products/<int:id>', methods=['GET'])
 @token_required
@@ -120,11 +135,12 @@ def get_product(id):
             "id": product.id,
             "nom": product.nom,
             "description": product.description,
-            "prix": str(product.prix),  # Convertir Decimal en chaîne de caractères
+            "prix": str(product.prix),
             "stock": product.stock,
             "categorie": product.categorie
         })
     return jsonify({'message': 'Product not found'}), 404
+
 
 # Endpoint to create a new product (admin only)
 @app.route('/products', methods=['POST'])
@@ -143,6 +159,7 @@ def create_product():
     db.session.commit()
     return jsonify({"id": new_product.id, "nom": new_product.nom}), 201
 
+
 # Endpoint to update a product (admin only)
 @app.route('/products/<int:id>', methods=['PUT'])
 @token_required
@@ -160,6 +177,7 @@ def update_product(id):
         return jsonify({"id": product.id, "nom": product.nom})
     return jsonify({'message': 'Product not found'}), 404
 
+
 # Endpoint to delete a product (admin only)
 @app.route('/products/<int:id>', methods=['DELETE'])
 @token_required
@@ -172,5 +190,29 @@ def delete_product(id):
         return jsonify({'message': 'Product deleted'})
     return jsonify({'message': 'Product not found'}), 404
 
+
+def consume_order_notifications():
+    connection = get_rabbitmq_connection()
+    channel = connection.channel()
+    channel.exchange_declare(exchange='order_notifications', exchange_type='fanout')
+
+    result = channel.queue_declare(queue='', exclusive=True)
+    queue_name = result.method.queue
+
+    channel.queue_bind(exchange='order_notifications', queue=queue_name)
+
+    def callback(ch, method, properties, body):
+        message = json.loads(body)
+        # Logique pour traiter la commande, vérifier la disponibilité du produit, etc.
+        print(f"Received order notification: {message}")
+
+    channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
+    channel.start_consuming()
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    # Lancer l'écoute des messages RabbitMQ dans un thread séparé
+    threading.Thread(target=consume_order_notifications, daemon=True).start()
+
+    # Lancer le serveur Flask
+    app.run(debug=True, port=5002)
