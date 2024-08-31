@@ -92,8 +92,7 @@ class ProductTestCase(unittest.TestCase):
         response = self.app.delete(f'/products/{product.id}', headers={'Authorization': f'Bearer {self.admin_token}'})
         self.assertEqual(response.status_code, 200)
         response = self.app.get(f'/products/{product.id}', headers={'Authorization': f'Bearer {self.admin_token}'})
-        #self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 404)
 
 
 if __name__ == '__main__':
