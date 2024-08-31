@@ -6,3 +6,4 @@ gunicorn==20.1.0  # Serveur WSGI pour déploiement
 pytest==6.2.4  # Pour les tests unitaires
 requests==2.25.1  # Pour faire des requêtes HTTP 
 Werkzeug==2.0.1
+SQLAlchemy==1.4
