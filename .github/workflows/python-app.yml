@@ -27,7 +27,7 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run tests
-      id: run_tests  # Assign an ID to this step
+      id: run_tests
       run: |
         python -m unittest discover -s TEST
 
@@ -38,9 +38,13 @@ jobs:
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
-        git add .
-        git commit -m "Tests passed: pushing changes"
-        git push origin main
+        if ! git diff-index --quiet HEAD --; then
+          git add .
+          git commit -m "Tests passed: pushing changes"
+          git push origin main
+        else
+          echo "No changes detected, nothing to commit."
+        fi
 
     - name: Create and push a new branch with commit ID
       if: failure()  # This runs only if the tests fail
@@ -51,6 +55,10 @@ jobs:
         git config --global user.name "GitHub Actions"
         NEW_BRANCH="fix-tests-${{ github.sha }}"
         git checkout -b $NEW_BRANCH
-        git add .
-        git commit -m "Tests failed: moving changes to $NEW_BRANCH"
-        git push origin $NEW_BRANCH
+        if ! git diff-index --quiet HEAD --; then
+          git add .
+          git commit -m "Tests failed: moving changes to $NEW_BRANCH"
+          git push origin $NEW_BRANCH
+        else
+          echo "No changes detected, nothing to commit."
+        fi
