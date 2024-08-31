@@ -3,9 +3,8 @@ from functools import wraps
 import secrets
 from flask_sqlalchemy import SQLAlchemy
 import threading
-import pika
 import json
-from API.pika_config import  get_rabbitmq_connection
+from .pika_config import  get_rabbitmq_connection
 
 # Initialisation de l'application Flask
 app = Flask(__name__)
