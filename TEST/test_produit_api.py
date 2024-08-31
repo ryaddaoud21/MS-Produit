@@ -45,8 +45,8 @@ class ProductTestCase(unittest.TestCase):
             'username': 'admin',
             'password': 'wrongpassword'
         })
-        #self.assertEqual(response.status_code, 401)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 401)
+        #self.assertEqual(response.status_code, 200)
 
 
     def test_get_all_products(self):
