@@ -191,6 +191,35 @@ def delete_product(id):
     return jsonify({'message': 'Product not found'}), 404
 
 
+# Consommateur RabbitMQ pour la mise à jour du stock
+def consume_stock_update():
+    connection = get_rabbitmq_connection()
+    channel = connection.channel()
+    channel.exchange_declare(exchange='stock_update', exchange_type='fanout')
+
+    result = channel.queue_declare(queue='', exclusive=True)
+    queue_name = result.method.queue
+
+    channel.queue_bind(exchange='stock_update', queue=queue_name)
+
+    def callback(ch, method, properties, body):
+        message = json.loads(body)
+        produit_id = message.get('produit_id')
+        quantite = message.get('quantite', 1)  # Défault à 1 si non spécifié
+
+        # Logique pour mettre à jour le stock du produit
+        product = Product.query.get(produit_id)
+        if product and product.stock >= quantite:
+            product.stock -= quantite
+            db.session.commit()
+            print(f"Stock updated for product {produit_id}. New stock: {product.stock}")
+        else:
+            print(f"Stock update failed for product {produit_id}. Not enough stock or product not found.")
+
+    channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
+    channel.start_consuming()
+
+# Consommateur RabbitMQ pour d'autres notifications de commande
 def consume_order_notifications():
     connection = get_rabbitmq_connection()
     channel = connection.channel()
@@ -203,8 +232,8 @@ def consume_order_notifications():
 
     def callback(ch, method, properties, body):
         message = json.loads(body)
-        # Logique pour traiter la commande, vérifier la disponibilité du produit, etc.
         print(f"Received order notification: {message}")
+        # Logique pour traiter la notification de commande ici
 
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
@@ -212,7 +241,7 @@ def consume_order_notifications():
 
 if __name__ == '__main__':
     # Lancer l'écoute des messages RabbitMQ dans un thread séparé
+    threading.Thread(target=consume_stock_update, daemon=True).start()
     threading.Thread(target=consume_order_notifications, daemon=True).start()
-
     # Lancer le serveur Flask
     app.run(debug=True, port=5002)
