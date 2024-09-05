@@ -11,7 +11,9 @@ from .pika_config import  get_rabbitmq_connection
 app = Flask(__name__)
 
 # Configuration de la base de données MySQL
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/product_db'
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/product_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@mysql-db/produit_db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialisation de SQLAlchemy
@@ -244,4 +246,4 @@ if __name__ == '__main__':
     threading.Thread(target=consume_stock_update, daemon=True).start()
     threading.Thread(target=consume_order_notifications, daemon=True).start()
     # Lancer le serveur Flask
-    app.run(debug=True, port=5002)
+    app.run(host='0.0.0.0', port=5002)
