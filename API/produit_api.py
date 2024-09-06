@@ -5,20 +5,18 @@ from flask_sqlalchemy import SQLAlchemy
 import threading
 import pika
 import json
-from .pika_config import  get_rabbitmq_connection
+from .pika_config import get_rabbitmq_connection
+from sqlalchemy.exc import SQLAlchemyError
 
 # Initialisation de l'application Flask
 app = Flask(__name__)
 
 # Configuration de la base de données MySQL
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@localhost/product_db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root@mysql-db/produit_db'
-
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialisation de SQLAlchemy
 db = SQLAlchemy(app)
-
 
 # Modèle de la base de données pour les produits
 class Product(db.Model):
@@ -34,17 +32,14 @@ class Product(db.Model):
     def __repr__(self):
         return f'<Product {self.nom}>'
 
-
-# Simulated token storage (In a real application, use a database or other secure storage)
+# Stockage simulé des tokens
 valid_tokens = {}
 
-
-# Function to generate a secure token
+# Fonction pour générer un token sécurisé
 def generate_token():
     return secrets.token_urlsafe(32)
 
-
-# Decorator to require a valid token
+# Décorateur pour exiger un token valide
 def token_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -65,8 +60,7 @@ def token_required(f):
 
     return decorated_function
 
-
-# Decorator to require admin role
+# Décorateur pour exiger le rôle d'administrateur
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -76,17 +70,16 @@ def admin_required(f):
 
     return decorated_function
 
-
-# Endpoint to login and generate a token
+# Endpoint pour se connecter et générer un token
 @app.route('/login', methods=['POST'])
 def login():
-    if not request.json or not 'username' in request.json or not 'password' in request.json:
+    if not request.json or 'username' not in request.json or 'password' not in request.json:
         return jsonify({"msg": "Username and password required"}), 400
 
     username = request.json['username']
     password = request.json['password']
 
-    # Simple user validation (hardcoded users)
+    # Validation simple des utilisateurs (utilisateurs codés en dur)
     users = {
         "admin": {"password": "password", "role": "admin"},
         "user1": {"password": "userpass", "role": "user"},
@@ -99,8 +92,7 @@ def login():
 
     return jsonify({"msg": "Invalid credentials"}), 401
 
-
-# Endpoint to logout and invalidate the token
+# Endpoint pour se déconnecter et invalider le token
 @app.route('/logout', methods=['POST'])
 @token_required
 def logout():
@@ -111,58 +103,63 @@ def logout():
         return jsonify({"msg": "Successfully logged out"}), 200
     return make_response(jsonify({"error": "Unauthorized"}), 401)
 
-
-# Endpoint to get all products
+# Endpoint pour récupérer tous les produits
 @app.route('/products', methods=['GET'])
 @token_required
 def get_products():
-    products = Product.query.all()
-    return jsonify([{
-        "id": p.id,
-        "nom": p.nom,
-        "description": p.description,
-        "prix": str(p.prix),
-        "stock": p.stock,
-        "categorie": p.categorie
-    } for p in products])
+    try:
+        products = Product.query.all()
+        return jsonify([{
+            "id": p.id,
+            "nom": p.nom,
+            "description": p.description,
+            "prix": str(p.prix),
+            "stock": p.stock,
+            "categorie": p.categorie
+        } for p in products])
+    except SQLAlchemyError as e:
+        return make_response(jsonify({"error": str(e)}), 500)
 
-
-# Endpoint to get a specific product by ID
+# Endpoint pour récupérer un produit spécifique par ID
 @app.route('/products/<int:id>', methods=['GET'])
 @token_required
 def get_product(id):
-    product = Product.query.get(id)
-    if product:
-        return jsonify({
-            "id": product.id,
-            "nom": product.nom,
-            "description": product.description,
-            "prix": str(product.prix),
-            "stock": product.stock,
-            "categorie": product.categorie
-        })
-    return jsonify({'message': 'Product not found'}), 404
+    try:
+        product = Product.query.get(id)
+        if product:
+            return jsonify({
+                "id": product.id,
+                "nom": product.nom,
+                "description": product.description,
+                "prix": str(product.prix),
+                "stock": product.stock,
+                "categorie": product.categorie
+            })
+        return jsonify({'message': 'Product not found'}), 404
+    except SQLAlchemyError as e:
+        return make_response(jsonify({"error": str(e)}), 500)
 
-
-# Endpoint to create a new product (admin only)
+# Endpoint pour créer un nouveau produit (admin uniquement)
 @app.route('/products', methods=['POST'])
 @token_required
 @admin_required
 def create_product():
     data = request.json
-    new_product = Product(
-        nom=data['nom'],
-        description=data.get('description'),
-        prix=data['prix'],
-        stock=data['stock'],
-        categorie=data.get('categorie')
-    )
-    db.session.add(new_product)
-    db.session.commit()
-    return jsonify({"id": new_product.id, "nom": new_product.nom}), 201
+    try:
+        new_product = Product(
+            nom=data['nom'],
+            description=data.get('description'),
+            prix=data['prix'],
+            stock=data['stock'],
+            categorie=data.get('categorie')
+        )
+        db.session.add(new_product)
+        db.session.commit()
+        return jsonify({"id": new_product.id, "nom": new_product.nom}), 201
+    except SQLAlchemyError as e:
+        return make_response(jsonify({"error": str(e)}), 500)
 
-
-# Endpoint to update a product (admin only)
+# Endpoint pour mettre à jour un produit (admin uniquement)
 @app.route('/products/<int:id>', methods=['PUT'])
 @token_required
 @admin_required
@@ -170,28 +167,32 @@ def update_product(id):
     product = Product.query.get(id)
     if product:
         data = request.json
-        product.nom = data.get('nom', product.nom)
-        product.description = data.get('description', product.description)
-        product.prix = data.get('prix', product.prix)
-        product.stock = data.get('stock', product.stock)
-        product.categorie = data.get('categorie', product.categorie)
-        db.session.commit()
-        return jsonify({"id": product.id, "nom": product.nom})
+        try:
+            product.nom = data.get('nom', product.nom)
+            product.description = data.get('description', product.description)
+            product.prix = data.get('prix', product.prix)
+            product.stock = data.get('stock', product.stock)
+            product.categorie = data.get('categorie', product.categorie)
+            db.session.commit()
+            return jsonify({"id": product.id, "nom": product.nom})
+        except SQLAlchemyError as e:
+            return make_response(jsonify({"error": str(e)}), 500)
     return jsonify({'message': 'Product not found'}), 404
 
-
-# Endpoint to delete a product (admin only)
+# Endpoint pour supprimer un produit (admin uniquement)
 @app.route('/products/<int:id>', methods=['DELETE'])
 @token_required
 @admin_required
 def delete_product(id):
     product = Product.query.get(id)
     if product:
-        db.session.delete(product)
-        db.session.commit()
-        return jsonify({'message': 'Product deleted'})
+        try:
+            db.session.delete(product)
+            db.session.commit()
+            return jsonify({'message': 'Product deleted'})
+        except SQLAlchemyError as e:
+            return make_response(jsonify({"error": str(e)}), 500)
     return jsonify({'message': 'Product not found'}), 404
-
 
 # Consommateur RabbitMQ pour la mise à jour du stock
 def consume_stock_update():
@@ -205,18 +206,21 @@ def consume_stock_update():
     channel.queue_bind(exchange='stock_update', queue=queue_name)
 
     def callback(ch, method, properties, body):
-        message = json.loads(body)
-        produit_id = message.get('produit_id')
-        quantite = message.get('quantite', 1)  # Défault à 1 si non spécifié
+        try:
+            message = json.loads(body)
+            produit_id = message.get('produit_id')
+            quantite = message.get('quantite', 1)  # Défault à 1 si non spécifié
 
-        # Logique pour mettre à jour le stock du produit
-        product = Product.query.get(produit_id)
-        if product and product.stock >= quantite:
-            product.stock -= quantite
-            db.session.commit()
-            print(f"Stock updated for product {produit_id}. New stock: {product.stock}")
-        else:
-            print(f"Stock update failed for product {produit_id}. Not enough stock or product not found.")
+            # Logique pour mettre à jour le stock du produit
+            product = Product.query.get(produit_id)
+            if product and product.stock >= quantite:
+                product.stock -= quantite
+                db.session.commit()
+                print(f"Stock updated for product {produit_id}. New stock: {product.stock}")
+            else:
+                print(f"Stock update failed for product {produit_id}. Not enough stock or product not found.")
+        except Exception as e:
+            print(f"Error processing stock update: {str(e)}")
 
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
@@ -233,17 +237,20 @@ def consume_order_notifications():
     channel.queue_bind(exchange='order_notifications', queue=queue_name)
 
     def callback(ch, method, properties, body):
-        message = json.loads(body)
-        print(f"Received order notification: {message}")
-        # Logique pour traiter la notification de commande ici
+        try:
+            message = json.loads(body)
+            print(f"Received order notification: {message}")
+            # Logique pour traiter la notification de commande ici
+        except Exception as e:
+            print(f"Error processing order notification: {str(e)}")
 
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
-
 
 if __name__ == '__main__':
     # Lancer l'écoute des messages RabbitMQ dans un thread séparé
     threading.Thread(target=consume_stock_update, daemon=True).start()
     threading.Thread(target=consume_order_notifications, daemon=True).start()
-    # Lancer le serveur Flask
+    # Lancer le serveur
+
     app.run(host='0.0.0.0', port=5002)
