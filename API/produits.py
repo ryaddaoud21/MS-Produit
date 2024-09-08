@@ -2,8 +2,19 @@ from flask import Blueprint, jsonify, request, make_response
 from API.models import db, Product
 from API.auth import token_required, admin_required
 from sqlalchemy.exc import SQLAlchemyError
+from prometheus_client import Counter, Summary, generate_latest
+
+# Prometheus metrics
+PRODUCT_REQUESTS = Counter('product_requests_total', 'Total number of requests for products')
+PRODUCT_PROCESSING_TIME = Summary('product_processing_seconds', 'Time spent processing product requests')
 
 products_blueprint = Blueprint('products', __name__)
+
+
+# Endpoint for Prometheus metrics
+@products_blueprint.route('/metrics', methods=['GET'])
+def metrics():
+    return generate_latest(), 200
 
 # Endpoint pour récupérer tous les produits
 @products_blueprint.route('/products', methods=['GET'])
@@ -25,7 +36,10 @@ def get_products():
 # Endpoint pour récupérer un produit spécifique par ID
 @products_blueprint.route('/products/<int:id>', methods=['GET'])
 @token_required
+@PRODUCT_PROCESSING_TIME.time()  # Mesurer le temps de traitement de cette requête
+
 def get_product(id):
+    PRODUCT_REQUESTS.inc()  # Incrémenter le compteur pour chaque requête sur /products
     try:
         product = Product.query.get(id)
         if product:
