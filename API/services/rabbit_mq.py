@@ -19,7 +19,7 @@ def consume_stock_update():
         try:
             message = json.loads(body)
             produit_id = message.get('produit_id')
-            quantite = message.get('quantite', 1)  # Par défaut, retirer 1 du stock
+            quantite = message.get('quantite', 1)  # Défault à 1 si non spécifié
 
             # Logique pour mettre à jour le stock du produit
             product = Product.query.get(produit_id)
@@ -35,7 +35,7 @@ def consume_stock_update():
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
 
-# Consommateur RabbitMQ pour les notifications de commande
+# Consommateur RabbitMQ pour d'autres notifications de commande
 def consume_order_notifications():
     connection = get_rabbitmq_connection()
     channel = connection.channel()
