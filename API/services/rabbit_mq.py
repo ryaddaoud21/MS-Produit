@@ -1,8 +1,6 @@
 import json
 import threading
-
 import pika
-
 from API.models import db, Product
 from .pika_config import get_rabbitmq_connection
 
