@@ -1,5 +1,8 @@
 import json
 import threading
+
+import pika
+
 from API.models import db, Product
 from .pika_config import get_rabbitmq_connection
 
@@ -55,6 +58,24 @@ def consume_order_notifications():
 
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
+
+
+
+def publish_message(exchange_name, message):
+    connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+    channel = connection.channel()
+
+    # Déclarez l'échange
+    channel.exchange_declare(exchange=exchange_name, exchange_type='fanout')
+
+    # Publiez le message
+    channel.basic_publish(
+        exchange=exchange_name,
+        routing_key='',
+        body=json.dumps(message)
+    )
+
+    connection.close()
 
 # Lancer les threads pour consommer les messages RabbitMQ
 def start_rabbitmq_consumers():
