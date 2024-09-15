@@ -1,8 +1,19 @@
 import json
 import threading
+
+from flask import jsonify
+
+from API.produits import produits_blueprint
 from API.services.pika_config import get_rabbitmq_connection
 
 
+@produits_blueprint.route('/notifications', methods=['GET'])
+def get_notifications():
+    notifications = {
+        "product_notifications": product_notifications,
+        "order_notifications": order_notifications
+    }
+    return jsonify(notifications), 200
 
 
 # A global variable to store notifications

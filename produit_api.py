@@ -23,6 +23,9 @@ def metrics():
     multiprocess.MultiProcessCollector(registry)
     return generate_latest(registry), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
+
+
+
 if __name__ == '__main__':
     Thread(target=consume_stock_updates, daemon=True).start()
     app.run(host='0.0.0.0', port=5002)
