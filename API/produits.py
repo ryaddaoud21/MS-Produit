@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, make_response
 from API.models import db, Product
-from API.auth import token_required
+from API.auth import token_required, admin_required
 from sqlalchemy.exc import SQLAlchemyError
 from prometheus_client import Counter, Summary, generate_latest
 
@@ -10,13 +10,14 @@ PRODUCT_PROCESSING_TIME = Summary('product_processing_seconds', 'Time spent proc
 
 products_blueprint = Blueprint('products', __name__)
 
+
 # Endpoint for Prometheus metrics
 @products_blueprint.route('/metrics', methods=['GET'])
 def metrics():
     return generate_latest(), 200
 
 # Endpoint pour récupérer tous les produits
-@products_blueprint.route('/products', methods=['GET'], endpoint="get_products")
+@products_blueprint.route('/products', methods=['GET'])
 @token_required
 def get_products():
     try:
@@ -33,9 +34,10 @@ def get_products():
         return make_response(jsonify({"error": str(e)}), 500)
 
 # Endpoint pour récupérer un produit spécifique par ID
-@products_blueprint.route('/products/<int:id>', methods=['GET'], endpoint="get_product")
+@products_blueprint.route('/products/<int:id>', methods=['GET'])
 @token_required
 @PRODUCT_PROCESSING_TIME.time()  # Mesurer le temps de traitement de cette requête
+
 def get_product(id):
     PRODUCT_REQUESTS.inc()  # Incrémenter le compteur pour chaque requête sur /products
     try:
@@ -54,8 +56,9 @@ def get_product(id):
         return make_response(jsonify({"error": str(e)}), 500)
 
 # Endpoint pour créer un nouveau produit (admin uniquement)
-@products_blueprint.route('/products', methods=['POST'], endpoint="create_product")
+@products_blueprint.route('/products', methods=['POST'])
 @token_required
+@admin_required
 def create_product():
     data = request.json
     try:
@@ -73,8 +76,9 @@ def create_product():
         return make_response(jsonify({"error": str(e)}), 500)
 
 # Endpoint pour mettre à jour un produit (admin uniquement)
-@products_blueprint.route('/products/<int:id>', methods=['PUT'], endpoint="update_product")
+@products_blueprint.route('/products/<int:id>', methods=['PUT'])
 @token_required
+@admin_required
 def update_product(id):
     product = Product.query.get(id)
     if product:
@@ -92,8 +96,9 @@ def update_product(id):
     return jsonify({'message': 'Product not found'}), 404
 
 # Endpoint pour supprimer un produit (admin uniquement)
-@products_blueprint.route('/products/<int:id>', methods=['DELETE'], endpoint="delete_product")
+@products_blueprint.route('/products/<int:id>', methods=['DELETE'])
 @token_required
+@admin_required
 def delete_product(id):
     product = Product.query.get(id)
     if product:
