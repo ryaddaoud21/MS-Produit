@@ -4,9 +4,11 @@ import pika
 from API.models import db, Product
 from .pika_config import get_rabbitmq_connection
 from flask import Flask, jsonify
+from flask import Blueprint, jsonify
+from API.models import Product
 
-# A global variable to store notifications
-from ..produits import products_blueprint
+# Création du blueprint
+products_blueprint = Blueprint('products_blueprint', __name__)
 
 order_notifications = []
 auth_notifications = []
@@ -20,9 +22,9 @@ def get_notifications():
     }
     return jsonify(response_data), 200
 
-
 # Consommateur RabbitMQ pour la mise à jour du stock
 def consume_stock_update(app):
+
     connection = get_rabbitmq_connection()
     channel = connection.channel()
     channel.exchange_declare(exchange='stock_update', exchange_type='fanout')
@@ -59,6 +61,7 @@ def consume_stock_update(app):
 
 # Consommateur RabbitMQ pour d'autres notifications de commande
 def consume_order_notifications(app):
+
     connection = get_rabbitmq_connection()
     channel = connection.channel()
     channel.exchange_declare(exchange='order_notifications', exchange_type='fanout')
@@ -86,6 +89,7 @@ def consume_order_notifications(app):
 
 
 def verify_token(token):
+
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq'))
     channel = connection.channel()
     channel.queue_declare(queue='auth_requests')
@@ -131,10 +135,7 @@ def verify_token(token):
 
     return response.get('authenticated', False), response.get('role')
 
-
-
 # Lancer les threads pour consommer les messages RabbitMQ
 def start_rabbitmq_consumers(app):
-    threading.Thread(target=verify_token, args=(app,), daemon=True).start()
     threading.Thread(target=consume_stock_update, args=(app,), daemon=True).start()
     threading.Thread(target=consume_order_notifications, args=(app,), daemon=True).start()
