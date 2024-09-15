@@ -15,17 +15,17 @@ db.init_app(app)
 # Enregistrer le blueprint des produits
 app.register_blueprint(produits_blueprint)
 
-''' 
+
 @app.route('/metrics')
 def metrics():
     registry = CollectorRegistry()
     multiprocess.MultiProcessCollector(registry)
     return generate_latest(registry), 200, {'Content-Type': CONTENT_TYPE_LATEST}
-'''
+
 
 
 if __name__ == '__main__':
     # Démarrer RabbitMQ dans un thread séparé
-    threading.Thread(target=start_rabbitmq_consumers, daemon=True).start()
+    threading.Thread(target=start_rabbitmq_consumers, args=(app,), daemon=True).start()
     # Lancer le serveur Flask
     app.run(host='0.0.0.0', port=5002)

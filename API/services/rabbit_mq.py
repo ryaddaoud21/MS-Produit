@@ -46,6 +46,9 @@ def consume_stock_update(app):
     channel.start_consuming()
 
 
+def declare_auth_responses_queue(channel):
+    channel.queue_declare(queue='auth_responses')
+
 # Consommateur RabbitMQ pour d'autres notifications de commande
 def consume_order_notifications(app):
     connection = get_rabbitmq_connection()
@@ -72,6 +75,7 @@ def consume_order_notifications(app):
 
     channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
     channel.start_consuming()
+
 
 
 def verify_token(token):
