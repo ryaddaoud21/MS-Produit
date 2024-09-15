@@ -10,9 +10,6 @@ from flask import Flask, jsonify
 order_notifications = []
 
 
-
-
-
 # Consommateur RabbitMQ pour la mise à jour du stock
 def consume_stock_update(app):
     connection = get_rabbitmq_connection()
