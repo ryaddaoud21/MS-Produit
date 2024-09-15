@@ -1,4 +1,3 @@
-from flask import request, jsonify, make_response,Blueprint
 from flask import Blueprint, jsonify, request, make_response
 import secrets
 from functools import wraps
@@ -11,8 +10,6 @@ valid_tokens = {}
 # Fonction pour générer un token sécurisé
 def generate_token():
     return secrets.token_urlsafe(32)
-
-
 
 # Décorateur pour exiger un token valide
 def token_required(f):
@@ -46,7 +43,7 @@ def admin_required(f):
 # Endpoint pour se connecter et générer un token
 @auth_blueprint.route('/login', methods=['POST'])
 def login():
-    if not request.json or not 'username' in request.json or not 'password' in request.json:
+    if not request.json or 'username' not in request.json or 'password' not in request.json:
         return jsonify({"msg": "Username and password required"}), 400
 
     username = request.json['username']
@@ -80,4 +77,4 @@ def logout():
 
 @auth_blueprint.route('/', methods=['GET'])
 def index():
-    return jsonify({"msg": "Welcome to the Product's API. The service is up and running!"}), 200
+    return jsonify({"msg": "Welcome to the PRODUCT's API. The service is up and running!"}), 200
