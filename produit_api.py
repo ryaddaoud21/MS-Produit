@@ -4,9 +4,8 @@ from flask import Flask, jsonify
 from API.models import db
 from API.auth import auth_blueprint
 from API.produits import products_blueprint
-from API.services.rabbit_mq import consume_order_notifications, consume_stock_update, start_rabbitmq_consumers
+from API.services.rabbit_mq import start_rabbitmq_consumers
 from API.config import Config
-
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -15,9 +14,8 @@ app.config.from_object(Config)
 db.init_app(app)
 
 # Enregistrer les blueprints
-app.register_blueprint(auth_blueprint, url_prefix='/')
-app.register_blueprint(products_blueprint, url_prefix='/')
-
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+app.register_blueprint(products_blueprint, url_prefix='/products')
 
 if __name__ == '__main__':
     start_rabbitmq_consumers(app)
