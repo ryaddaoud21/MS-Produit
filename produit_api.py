@@ -1,4 +1,6 @@
 from flask import Flask, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
 from API.models import db
 from API.produits import produits_blueprint
 from API.auth import auth_blueprint
@@ -13,6 +15,8 @@ app.config.from_object(Config)
 
 # Initialize the database
 db.init_app(app)
+db = SQLAlchemy(app)
+
 app.register_blueprint(auth_blueprint, url_prefix='/')
 app.register_blueprint(produits_blueprint, url_prefix='/')
 
