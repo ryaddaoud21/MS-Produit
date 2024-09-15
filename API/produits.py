@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, make_response
 from API.models import db, Product
-from API.auth import token_required, admin_required
+from API.auth import token_required
 from sqlalchemy.exc import SQLAlchemyError
 from prometheus_client import Counter, Summary, generate_latest
 
@@ -58,7 +58,7 @@ def get_product(id):
 # Endpoint pour créer un nouveau produit (admin uniquement)
 @products_blueprint.route('/products', methods=['POST'])
 @token_required
-@admin_required
+#@admin_required
 def create_product():
     data = request.json
     try:
@@ -78,7 +78,7 @@ def create_product():
 # Endpoint pour mettre à jour un produit (admin uniquement)
 @products_blueprint.route('/products/<int:id>', methods=['PUT'])
 @token_required
-@admin_required
+#@admin_required
 def update_product(id):
     product = Product.query.get(id)
     if product:
@@ -98,7 +98,7 @@ def update_product(id):
 # Endpoint pour supprimer un produit (admin uniquement)
 @products_blueprint.route('/products/<int:id>', methods=['DELETE'])
 @token_required
-@admin_required
+#@admin_required
 def delete_product(id):
     product = Product.query.get(id)
     if product:

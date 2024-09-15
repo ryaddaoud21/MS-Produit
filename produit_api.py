@@ -4,7 +4,7 @@ from flask import Flask, jsonify
 from API.models import db
 from API.auth import auth_blueprint
 from API.produits import products_blueprint
-from API.services.rabbit_mq import consume_order_notifications, consume_stock_update, start_rabbitmq_consumers
+from API.services.rabbit_mq import consume_order_notifications, consume_stock_update, start_rabbitmq_consumers,verify_token
 from API.config import Config
 
 

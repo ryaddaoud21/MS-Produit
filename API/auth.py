@@ -1,6 +1,5 @@
 from flask import Blueprint, jsonify, request, make_response
-import secrets
-from functools import wraps
+
 
 from API.services.rabbit_mq import verify_token
 
