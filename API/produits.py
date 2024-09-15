@@ -2,6 +2,8 @@ from flask import Blueprint, jsonify, request
 from API.models import db, Product
 from prometheus_client import Counter, Summary
 from API.auth import token_required
+import decimal
+
 # Création du blueprint pour les routes des produits
 produits_blueprint = Blueprint('produits', __name__)
 
@@ -9,8 +11,11 @@ produits_blueprint = Blueprint('produits', __name__)
 REQUEST_COUNT = Counter('product_requests_total', 'Total number of requests for products')
 REQUEST_LATENCY = Summary('product_processing_seconds', 'Time spent processing product requests')
 
-
-
+# Fonction utilitaire pour sérialiser les objets Decimal
+def decimal_to_float(val):
+    if isinstance(val, decimal.Decimal):
+        return float(val)
+    return val
 
 # Route pour obtenir tous les produits (GET)
 @produits_blueprint.route('/products', methods=['GET'])
@@ -23,7 +28,7 @@ def get_products():
         "id": p.id,
         "nom": p.nom,
         "description": p.description,
-        "prix": str(p.prix),
+        "prix": decimal_to_float(p.prix),
         "stock": p.stock,
         "categorie": p.categorie
     } for p in products]), 200
@@ -40,7 +45,7 @@ def get_product(id):
         "id": product.id,
         "nom": product.nom,
         "description": product.description,
-        "prix": str(product.prix),
+        "prix": decimal_to_float(product.prix),
         "stock": product.stock,
         "categorie": product.categorie
     }), 200
@@ -74,7 +79,14 @@ def update_product(id):
         product.stock = data.get('stock', product.stock)
         product.categorie = data.get('categorie', product.categorie)
         db.session.commit()
-        return jsonify({"id": product.id, "nom": product.nom})
+        return jsonify({
+            "id": product.id,
+            "nom": product.nom,
+            "description": product.description,
+            "prix": decimal_to_float(product.prix),
+            "stock": product.stock,
+            "categorie": product.categorie
+        })
     return jsonify({'message': 'Product not found'}), 404
 
 # Route pour supprimer un produit par ID (DELETE)
