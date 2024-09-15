@@ -10,11 +10,12 @@ REQUEST_COUNT = Counter('product_requests_total', 'Total number of requests for 
 REQUEST_LATENCY = Summary('product_processing_seconds', 'Time spent processing product requests')
 
 
+
+
 # Route pour obtenir tous les produits (GET)
 @produits_blueprint.route('/products', methods=['GET'])
 @REQUEST_LATENCY.time()
 @token_required
-
 def get_products():
     REQUEST_COUNT.inc()  # Incrémenter le compteur de requêtes
     products = Product.query.all()
@@ -30,7 +31,6 @@ def get_products():
 # Route pour obtenir un produit par ID (GET)
 @produits_blueprint.route('/products/<int:id>', methods=['GET'])
 @token_required
-
 def get_product(id):
     product = Product.query.get(id)
     if not product:
@@ -80,7 +80,6 @@ def update_product(id):
 # Route pour supprimer un produit par ID (DELETE)
 @produits_blueprint.route('/products/<int:id>', methods=['DELETE'])
 @token_required
-
 def delete_product(id):
     product = Product.query.get(id)
     if product:

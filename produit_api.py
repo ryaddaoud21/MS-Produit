@@ -1,9 +1,9 @@
-from flask import Flask
+from flask import Flask, jsonify
 from API.models import db
 from API.produits import produits_blueprint
 from API.auth import auth_blueprint
 from threading import Thread
-from API.services.rabbit_mq import consume_stock_updates,start_rabbitmq_consumers
+from API.services.rabbit_mq import consume_stock_updates
 from API.config import Config
 from prometheus_client import multiprocess, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
 
@@ -16,6 +16,7 @@ db.init_app(app)
 app.register_blueprint(auth_blueprint, url_prefix='/')
 app.register_blueprint(produits_blueprint, url_prefix='/')
 
+
 @app.route('/metrics')
 def metrics():
     registry = CollectorRegistry()
@@ -23,5 +24,5 @@ def metrics():
     return generate_latest(registry), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
 if __name__ == '__main__':
-    Thread(target=start_rabbitmq_consumers, daemon=True).start()
+    Thread(target=consume_stock_updates, daemon=True).start()
     app.run(host='0.0.0.0', port=5002)

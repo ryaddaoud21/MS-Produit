@@ -3,18 +3,10 @@ import threading
 
 import pika
 from flask import jsonify
-
-from API.produits import produits_blueprint
 from API.services.pika_config import get_rabbitmq_connection
 
 # A global variable to store notifications
 product_notifications = []
-
-# Route to get all notifications
-@produits_blueprint.route('/notifications', methods=['GET'])
-def get_notifications():
-    return jsonify(product_notifications), 200
-
 
 # RabbitMQ consumer for product stock updates
 def consume_stock_updates():
