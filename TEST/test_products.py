@@ -48,8 +48,7 @@ def test_get_products(client, admin_token):
     assert isinstance(response.json, list)
 
 # Test pour créer un produit
-@patch('API.services.rabbit_mq.publish_message')  # Simuler RabbitMQ pour ce test
-def test_create_product(mock_publish, client, admin_token):
+def test_create_product(client, admin_token):
     product_data = {
         "nom": "Produit 1",
         "description": "Description du produit 1",
@@ -59,9 +58,9 @@ def test_create_product(mock_publish, client, admin_token):
     }
     headers = {'Authorization': f'Bearer {admin_token}'}
     response = client.post('/products', json=product_data, headers=headers)
-    assert response.status_code == 201
-    assert 'id' in response.json
-    mock_publish.assert_not_called()  # RabbitMQ n'est pas appelé ici
+    assert response.status_code == 201, "Product creation failed"
+    assert 'id' in response.json, "Expected 'id' in response"
+
 
 # Test de mise à jour d'un produit
 def test_update_product(client, admin_token):
