@@ -4,8 +4,16 @@ from flask import Blueprint, jsonify, request, make_response
 from API.models import Product, db
 from API.auth import token_required, admin_required
 from sqlalchemy.exc import SQLAlchemyError
+from prometheus_client import Counter, Summary, generate_latest, CONTENT_TYPE_LATEST
 
 produits_blueprint = Blueprint('produits', __name__)
+
+
+# Variables pour le monitoring Prometheus
+REQUEST_COUNT = Counter('client_requests_total', 'Total number of requests for clients')
+REQUEST_LATENCY = Summary('client_processing_seconds', 'Time spent processing client requests')
+
+
 
 @produits_blueprint.route('/products', methods=['GET'])
 @token_required
