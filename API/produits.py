@@ -1,8 +1,8 @@
 from flask import Blueprint, jsonify, request, make_response
 from API.models import db, Product
-from API.auth import token_required, admin_required
+from API.decorators import token_required  # Import the decorator from the new module
 from sqlalchemy.exc import SQLAlchemyError
-from prometheus_client import Counter, Summary, generate_latest
+from prometheus_client import Counter, Summary
 
 # Prometheus metrics
 PRODUCT_REQUESTS = Counter('product_requests_total', 'Total number of requests for products')
@@ -10,10 +10,10 @@ PRODUCT_PROCESSING_TIME = Summary('product_processing_seconds', 'Time spent proc
 
 products_blueprint = Blueprint('products', __name__)
 
-
 # Endpoint for Prometheus metrics
 @products_blueprint.route('/metrics', methods=['GET'])
 def metrics():
+    from prometheus_client import generate_latest
     return generate_latest(), 200
 
 # Endpoint pour récupérer tous les produits
@@ -58,7 +58,6 @@ def get_product(id):
 # Endpoint pour créer un nouveau produit (admin uniquement)
 @products_blueprint.route('/products', methods=['POST'])
 @token_required
-@admin_required
 def create_product():
     data = request.json
     try:
@@ -78,7 +77,6 @@ def create_product():
 # Endpoint pour mettre à jour un produit (admin uniquement)
 @products_blueprint.route('/products/<int:id>', methods=['PUT'])
 @token_required
-@admin_required
 def update_product(id):
     product = Product.query.get(id)
     if product:
@@ -98,7 +96,6 @@ def update_product(id):
 # Endpoint pour supprimer un produit (admin uniquement)
 @products_blueprint.route('/products/<int:id>', methods=['DELETE'])
 @token_required
-@admin_required
 def delete_product(id):
     product = Product.query.get(id)
     if product:
