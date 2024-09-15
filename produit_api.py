@@ -1,20 +1,20 @@
 from flask import Flask
-from API.config import Config
 from API.models import db
 from API.produits import produits_blueprint
-from API.services.rabbit_mq import start_rabbitmq_consumers
-import threading
+from API.auth import auth_blueprint
+from threading import Thread
+from API.services.rabbit_mq import consume_stock_updates,start_rabbitmq_consumers
+from API.config import Config
 from prometheus_client import multiprocess, CollectorRegistry, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
+
 app.config.from_object(Config)
 
-# Initialiser la base de données
+# Initialize the database
 db.init_app(app)
-
-# Enregistrer le blueprint des produits
-app.register_blueprint(produits_blueprint)
-
+app.register_blueprint(auth_blueprint, url_prefix='/')
+app.register_blueprint(produits_blueprint, url_prefix='/')
 
 @app.route('/metrics')
 def metrics():
@@ -22,10 +22,6 @@ def metrics():
     multiprocess.MultiProcessCollector(registry)
     return generate_latest(registry), 200, {'Content-Type': CONTENT_TYPE_LATEST}
 
-
-
 if __name__ == '__main__':
-    # Démarrer RabbitMQ dans un thread séparé
-    threading.Thread(target=start_rabbitmq_consumers, args=(app,), daemon=True).start()
-    # Lancer le serveur Flask
+    Thread(target=start_rabbitmq_consumers, daemon=True).start()
     app.run(host='0.0.0.0', port=5002)
