@@ -1,106 +1,82 @@
-
 # MS-Produit
 
-## Microservice Produit
+# Microservice Produit
 
-### Description
+## Description
 
-Le microservice `Produit` gère les informations sur les produits. Il permet de créer, lire, mettre à jour et supprimer des produits dans une base de données MySQL. Ce service s'intègre avec RabbitMQ pour la gestion des notifications et des mises à jour de stock. En outre, il expose des métriques pour la surveillance via Prometheus et Grafana.
+Le microservice `Produit` est responsable de la gestion des produits. Il permet de créer, lire, mettre à jour et supprimer des produits dans la base de données.
 
-### Architecture
-![Ajouter un sous-titre (2)](https://github.com/user-attachments/assets/834bf629-3612-43d5-aefa-bddfe14acf5e)
-
-Le microservice `MS-Produit` fait partie d'une architecture microservices plus large, qui comprend également :
-
-- **MS-Client** : Microservice pour la gestion des clients.
-- **MS-Commande** : Microservice pour la gestion des commandes.
-- **RabbitMQ** : Service de messagerie pour la communication entre les microservices.
-- **Prometheus** : Outil de surveillance pour collecter les métriques des microservices.
-- **Grafana** : Plateforme d'analyse et de visualisation des métriques Prometheus.
-- **MySQL** : Base de données pour les microservices `Client`, `Produit` et `Commande`.
+## Installation
 
 ### Prérequis
 
-Avant de commencer, assurez-vous que vous avez installé les éléments suivants :
+- Python 3.9+
+- MySQL
+- `pip` pour installer les dépendances
 
-- **Docker** : Utilisé pour exécuter les conteneurs.
-- **Docker Compose** : Utilisé pour orchestrer plusieurs conteneurs Docker.
-- **Prometheus** : Utilisé pour surveiller les performances des microservices.
-- **Grafana** : Utilisé pour visualiser les métriques collectées par Prometheus.
-- **Git** : Pour cloner les dépôts de microservices.
+### Étapes d'installation
 
-### Installation et Démarrage avec Docker Compose
-
-1. **Clonez le dépôt du microservice Produit :**
-
+1. Clonez le dépôt :
    ```bash
-   git clone https://github.com/ryaddaoud21/MS-Produit.git
+   git clone https://github.com/votre-utilisateur/MS-Produit.git
    cd MS-Produit
    ```
 
-2. **Récupérer le fichier `docker-compose.yml` pour l'architecture complète :**
-   Clonez le dépôt du microservice : https://github.com/ryaddaoud21/microservices-deployment
-   Ce fichier orchestrera tous les services nécessaires, y compris Prometheus, Grafana, RabbitMQ, MySQL et les microservices.
-
+2. Créez un environnement virtuel et activez-le :
    ```bash
-   docker-compose up -d
+   python -m venv venv
+   source venv/bin/activate  # Sur Windows: venv\Scripts\activate
    ```
 
-3. **Vérifiez que les services sont bien démarrés :**
-
+3. Installez les dépendances :
    ```bash
-   docker-compose ps
+   pip install -r requirements.txt
    ```
 
-4. **Tester le microservice :**
+4. Configurez la base de données MySQL :
+   - Créez une base de données nommée `product_db`.
+   - Mettez à jour les paramètres de connexion à la base de données dans `produit_api.py` si nécessaire.
 
-   Pour exécuter les tests unitaires dans ce projet, utilisez la commande suivante :
-
+5. Exécutez les migrations de la base de données (si applicable) :
    ```bash
-   python -m unittest discover -s TEST | pytest
+   flask db upgrade
    ```
+
+## Utilisation
+
+### Lancer l'application
+
+```bash
+python API/produit_api.py
+```
+
+L'application sera disponible à l'adresse `http://127.0.0.1:5000/`.
 
 ### Endpoints
 
+- **POST** `/login` : Authentification et génération de token.
 - **GET** `/products` : Récupère la liste de tous les produits.
 - **GET** `/products/<id>` : Récupère les détails d'un produit spécifique.
 - **POST** `/products` : Crée un nouveau produit (réservé aux administrateurs).
 - **PUT** `/products/<id>` : Met à jour les informations d'un produit (réservé aux administrateurs).
 - **DELETE** `/products/<id>` : Supprime un produit (réservé aux administrateurs).
 
-### Surveillance et Visualisation
+### Tests
 
-- **Prometheus** collecte les métriques du microservice.
-- **Grafana** visualise ces métriques pour surveiller la performance et les ressources du microservice.
+Pour exécuter les tests unitaires :
 
-### Structure du Projet
-
-```
-MS-Produit/
-├── .github/                # Configurations spécifiques à GitHub
-│   ├── produit.yml       # Fichiers yml pour le pipeline CI
-│   ├── produit_app.yml       # Fichiers yml pour le pipeline CD
-
-├── .idea/                  # Configurations IDE (par exemple, PyCharm)
-├── API/
-│   ├── __pycache__/        # Fichiers Python compilés
-│   ├── services/
-│   │   ├── pika_config.py  # Configuration de la connexion RabbitMQ
-│   │   ├── rabbitmq_consumer.py # Service consommateur RabbitMQ pour les événements produits
-│   ├── produits.py         # Endpoints de l'API pour la gestion des produits
-│   ├── config.py           # Configuration de Flask et du service
-│   ├── models.py           # Modèles de base de données liés aux produits
-├── TEST/
-│   ├── __pycache__/        # Fichiers Python compilés pour les tests
-│   ├── __init__.py         # Initialisation de la suite de tests
-│   ├── conftest.py         # Configuration pour le framework de tests (pytest)
-│   ├── test_products.py    # Tests pour les fonctionnalités liées aux produits
-│   ├── test_auth.py
-├── .gitignore              # Fichiers et répertoires à ignorer dans le contrôle de version
-├── Dockerfile              # Configuration Docker pour la conteneurisation du service
-├── README.md               # Documentation du service MS-produit
-├── produit_api.py          # Point d'entrée pour exécuter l'application Flask
-├── requirements.txt        # Dépendances Python pour le projet
+```bash
+python -m unittest discover -s TEST
 ```
 
+## CI/CD
 
+Le pipeline CI/CD est configuré avec GitHub Actions. Les tests sont exécutés automatiquement à chaque commit ou pull request. Si les tests échouent, une nouvelle branche est créée pour corriger les erreurs.
+
+## Contribuer
+
+Les contributions sont les bienvenues. Veuillez soumettre une pull request ou signaler un problème via GitHub.
+
+## License
+
+Ce projet est sous licence MIT. Consultez le fichier [LICENSE](LICENSE) pour plus de détails.
