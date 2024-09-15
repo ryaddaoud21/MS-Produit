@@ -41,8 +41,12 @@ def consume_stock_update(app):
                     product.stock -= quantite
                     db.session.commit()
                     print(f"Stock updated for product {produit_id}. New stock: {product.stock}")
+                    formatted_message = f"Stock updated for product {produit_id}. New stock: {product.stock}"
                 else:
                     print(f"Stock update failed for product {produit_id}. Not enough stock or product not found.")
+                    formatted_message = f"Stock updated for product {produit_id}. New stock: {product.stock}"
+                order_notifications.append(formatted_message)
+
             except Exception as e:
                 print(f"Error processing stock update: {str(e)}")
 
