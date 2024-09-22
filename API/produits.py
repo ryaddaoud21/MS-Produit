@@ -3,7 +3,10 @@ from API.models import db, Product
 from API.auth import token_required, admin_required
 from sqlalchemy.exc import SQLAlchemyError
 from prometheus_client import Counter, Summary, generate_latest
-
+from prometheus_client import Counter, Summary, generate_latest
+from prometheus_client.core import CollectorRegistry
+from prometheus_client import CONTENT_TYPE_LATEST
+from functools import wraps
 # Prometheus metrics
 PRODUCT_REQUESTS = Counter('product_requests_total', 'Total number of requests for products')
 PRODUCT_PROCESSING_TIME = Summary('product_processing_seconds', 'Time spent processing product requests')
@@ -16,9 +19,21 @@ products_blueprint = Blueprint('products', __name__)
 def metrics():
     return generate_latest(), 200
 
+
+# Décorateur pour le suivi des métriques
+def track_metrics(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        PRODUCT_REQUESTS.inc()  # Incrément du compteur de requêtes
+        with PRODUCT_PROCESSING_TIME.time():  # Mesure du temps de traitement
+            return f(*args, **kwargs)
+    return decorated_function
+
+
 # Endpoint pour récupérer tous les produits
 @products_blueprint.route('/products', methods=['GET'])
 @token_required
+@track_metrics
 def get_products():
     try:
         products = Product.query.all()
@@ -58,6 +73,7 @@ def get_product(id):
 @products_blueprint.route('/products', methods=['POST'])
 @token_required
 @admin_required
+@track_metrics
 def create_product():
     data = request.json
     try:
@@ -78,6 +94,7 @@ def create_product():
 @products_blueprint.route('/products/<int:id>', methods=['PUT'])
 @token_required
 @admin_required
+@track_metrics
 def update_product(id):
     product = Product.query.get(id)
     if product:
@@ -98,6 +115,7 @@ def update_product(id):
 @products_blueprint.route('/products/<int:id>', methods=['DELETE'])
 @token_required
 @admin_required
+@track_metrics
 def delete_product(id):
     product = Product.query.get(id)
     if product:
