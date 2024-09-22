@@ -33,18 +33,23 @@ def consume_stock_update(app):
             try:
                 message = json.loads(body)
                 produit_id = message.get('produit_id')
-                quantite = message.get('quantite', 1)  # Default to 1 if not specified
+                quantite = message.get('quantite', 1)  # Utilisez la quantité reçue dans le message
 
                 # Logique pour mettre à jour le stock du produit
                 product = Product.query.get(produit_id)
-                if product and product.stock >= quantite:
-                    product.stock -= quantite
-                    db.session.commit()
-                    print(f"Stock updated for product {produit_id}. New stock: {product.stock}")
-                    formatted_message = f"Stock updated for product {produit_id}. New stock: {product.stock}"
+                if product:
+                    if product.stock >= quantite:  # Vérifiez si le stock est suffisant pour déduire la quantité
+                        product.stock -= quantite
+                        db.session.commit()
+                        print(f"Stock updated for product {produit_id}. New stock: {product.stock}")
+                        formatted_message = f"Stock updated for product {produit_id}. New stock: {product.stock}"
+                    else:
+                        print(f"Stock update failed for product {produit_id}. Not enough stock.")
+                        formatted_message = f"Stock update failed for product {produit_id}. Not enough stock."
                 else:
-                    print(f"Stock update failed for product {produit_id}. Not enough stock or product not found.")
-                    formatted_message = f"Stock updated for product {produit_id}. New stock: {product.stock}"
+                    print(f"Product {produit_id} not found.")
+                    formatted_message = f"Product {produit_id} not found."
+
                 order_notifications.append(formatted_message)
 
             except Exception as e:
