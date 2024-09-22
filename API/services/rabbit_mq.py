@@ -69,7 +69,7 @@ def consume_order_notifications(app):
         with app.app_context():  # Explicitly push the app context
             try:
                 message = json.loads(body)
-                formatted_message = f"Received order notification: {message}"
+                formatted_message = f"Received order notification for product: {message}"
 
                 # Store the formatted notification
                 order_notifications.append(formatted_message)

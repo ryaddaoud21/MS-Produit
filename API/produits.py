@@ -37,7 +37,6 @@ def get_products():
 @products_blueprint.route('/products/<int:id>', methods=['GET'])
 @token_required
 @PRODUCT_PROCESSING_TIME.time()  # Mesurer le temps de traitement de cette requête
-
 def get_product(id):
     PRODUCT_REQUESTS.inc()  # Incrémenter le compteur pour chaque requête sur /products
     try:
